@@ -2,6 +2,7 @@
 pragma solidity ^0.8.6;
 
 import "@jbx-protocol/contracts-v2/contracts/system_tests/helpers/TestBaseWorkflow.sol";
+import "../src/JBVoteTokenDeployer.sol";
 import "../src/JBGovernanceDeployer.sol";
 
 contract ContractTest is TestBaseWorkflow {
@@ -54,7 +55,8 @@ contract ContractTest is TestBaseWorkflow {
             dataSource: address(0)
         });
 
-        deployer = new JBGovernanceDeployer(jbController());
+        IJBVoteTokenDeployer _tokenDeployer = new JBVoteTokenDeployer();
+        deployer = new JBGovernanceDeployer(jbController(), _tokenDeployer);
     }
 
     function testLaunchProject() public {

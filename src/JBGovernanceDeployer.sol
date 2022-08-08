@@ -10,6 +10,7 @@ import "./structs/JBDeployGovernance.sol";
 import "./structs/JBLaunchProjectData.sol";
 import "./structs/JBGovernanceTokenConfig.sol";
 import "./governors/JBGovernor.sol";
+import "./interfaces/IJBVoteTokenDeployer.sol";
 import "./JBVoteToken.sol";
 
 /**
@@ -22,10 +23,18 @@ contract JBGovernanceDeployer {
     */
     IJBController public immutable controller;
 
+     /** 
+        @notice
+        The contract that deployes VoteTokens
+    */
+    IJBVoteTokenDeployer public immutable tokenDeployer;
+
     constructor(
-        IJBController _controller
+        IJBController _controller,
+        IJBVoteTokenDeployer _tokenDeployer
     ){
         controller = _controller;
+        tokenDeployer = _tokenDeployer;
     }
 
     /**
@@ -84,8 +93,11 @@ contract JBGovernanceDeployer {
         JBGovernanceTokenConfig calldata _tokenConfig,
         JBDeployGovernance calldata _governanceConfig
     ) internal {
-         // Configure the project
+         // Prepare the (new) governance token
         (address _currentToken, address _newToken) = _prepareToken(_projectId, _tokenConfig);
+        
+        // TODO: Figure out if the tokenStore is able to mint new tokens
+        
         // Deploy the governor
         JBGovernor _governor = _initGovernor(_newToken, _governanceConfig);
 
@@ -151,15 +163,13 @@ contract JBGovernanceDeployer {
             return (_currentToken, _tokenConfig.governanceToken);
         }
         
-        // Deploy a new token
-        IJBToken _newToken = new JBVoteToken(
-            _tokenConfig.governanceTokenName,
-            _tokenConfig.governanceTokenSymbol
-        );
-
-        // Transfer ownership to the tokenStore in preperation
+        // Deploy a new token and transfer ownership to the tokenStore in preperation
         address _tokenStore = address(controller.tokenStore());
-        _newToken.transferOwnership(_projectId, _tokenStore);
+        _newToken = tokenDeployer.deployVoteToken(
+            _tokenConfig.governanceTokenName,
+            _tokenConfig.governanceTokenSymbol,
+            _tokenStore
+        );
 
         return (_currentToken, address(_newToken));
     }
